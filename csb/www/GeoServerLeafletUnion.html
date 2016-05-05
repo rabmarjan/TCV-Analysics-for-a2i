@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>GeoServerPostGisLeaflet</title>
+        <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet.css" />
+		<script src="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet.js"></script>
+		<script src = "https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
+		 <style>
+        html { height: 100% }
+        body { height: 100%; margin: 0; padding: 0;}
+        #map{ height: 100% }
+		table, td {
+			border-collapse: collapse;
+			border-style: solid;
+			border-width: 1px;
+			border-color: #e9e9e9;
+			padding: 5px;
+		}
+		.evenrowcol{
+			background-color: #f6f6f6;
+		}
+
+         </style>
+    </head>
+    <body>
+<div id="map"></div>
+<script>
+var map = L.map('map').setView([23.99546, 90.24467],7);
+L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png',{
+attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map)
+L.control.scale().addTo(map);
+     var rootUrl = 'http://103.248.13.141:8080/geoserver/dist/ows';
+  // var rootUrl = 'http://localhost:8080/geoserver/bgd_bnd_adm/ows';
+// var rootUrl = 'http://localhost:8080/geoserver/sf/ows';
+  // var rootUrl ='http://localhost:8080/geoserver/arcTest/ows';
+
+var defaultParameters = {
+    service: 'WFS',
+    version: '1.0.0',
+    request: 'GetFeature',
+    // typeName: 'sf:archsites',
+   //typeName: 'arcTest:archsites',
+      typeName: 'dist:dist',
+   // typeName: 'bgd_bnd_adm:district',
+    maxFeatures: 200,
+    outputFormat: 'text/javascript',
+    format_options: 'callback: getJson',
+    srsName:'EPSG:4326'
+
+};
+
+var parameters = L.Util.extend(defaultParameters);
+//console.log(rootUrl + L.Util.getParamString(parameters));
+$.ajax({
+    jsonp : true,
+    url: rootUrl + L.Util.getParamString(parameters),
+    dataType: 'jsonp',
+    jsonpCallback: 'getJson',
+    success: handleJson
+});
+
+var group = new L.featureGroup().addTo(map);
+var geojsonlayer;
+function handleJson(data) {
+ //   console.log(data);
+	
+    geojsonlayer=L.geoJson(data, {
+	 style : function(feature){
+      var fillColor,
+      profit = feature.properties.profit;
+      if ( profit > 9827 ) fillColor = "#FF0000";
+      else if ( profit > 5694 ) fillColor = "#FFFF00";
+      else if ( profit > 3916 ) fillColor = "#FF0000";
+      else if ( profit > 1576 ) fillColor = "#008000";
+      else fillColor = "#FF8000";  // no data
+      return { color: "#999", weight: 1, fillColor: fillColor, fillOpacity: .5 };
+    },	
+        onEachFeature: function (feature, my_Layer) {
+             
+			my_Layer.bindPopup("<table>" +
+					"<tr class='oddrowcol'><td>OBJECTID : </td><td>"+feature.properties.objectid+"</td></tr>" +
+					"<tr class='evenrowcol'><td>District : </td><td>"+feature.properties.district+"</td></tr>" +
+					"<tr class='oddrowcol'><td>Profit : </td><td>"+feature.properties.profit+"</td></tr>" +
+					"</table>"
+			);				
+		}
+	/*				  
+					  ,
+        pointToLayer: function (feature, latlng) {
+            //return L.circleMarker(latlng, geojsonMarkerOptions);
+			return L.circleMarker(latlng//, geojsonMarkerOptions
+			);
+            //return L.marker(latlng);
+        }
+		*/
+    }).addTo(group);
+	map.fitBounds(group.getBounds());
+	
+}
+
+function getJson(data) {
+console.log("callback function fired");
+}
+</script>
+</body>
+</html>

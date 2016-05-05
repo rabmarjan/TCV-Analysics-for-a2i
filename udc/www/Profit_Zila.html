@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>GeoServerPostGisLeaflet</title>
+        <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet.css" />
+		<script src="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet.js"></script>
+		<script src = "https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
+		<style>
+        html { height: 100% }
+        body { height: 100%; margin: 0; padding: 0;}
+        #map{ height: 100% }
+		table, td {
+			border-collapse: collapse;
+			border-style: solid;
+			border-width: 1px;
+			border-color: #e9e9e9;
+			padding: 5px;
+		}
+		.evenrowcol{
+			background-color: #f6f6f6;
+		}
+        .legend {
+			padding: 6px 8px;
+			font: 14px/16px Arial, Helvetica, sans-serif;
+			background: white;
+			background: rgba(255,255,255,0.8);
+			box-shadow: 0 0 15px rgba(0,0,0,0.2);
+			border-radius: 5px;
+			line-height: 18px;
+			color: #555;
+		}
+		.legend i {
+			width: 18px;
+			height: 18px;
+			float: left;
+			margin-right: 8px;
+		}
+		.legend table, .legend td {
+			border: none;
+		}
+		.value {
+			border: none;
+			padding: 0px 0px 0px 8px;
+			text-align: left;
+			vertical-align: middle;
+		}
+		.circle {
+			border: none;
+			padding: 0px;
+			text-align: center;
+			vertical-align: middle;
+		}
+		.shape {
+			padding: 0px;
+			text-align: center;
+			vertical-align: middle;
+		}
+		.ln {
+			stroke: #0033ff;
+			stroke-width: 5;
+			stroke-opacity: 0.5;
+			stroke-linecap: round;
+		}
+		.plgn {
+			fill: #0033ff;
+			fill-opacity: 0.5;
+			stroke: #0033ff;
+			stroke-width: 4;
+			stroke-opacity: 0.5;
+			stroke-linejoin: round;
+		}
+		.mrks {
+		    padding: 0px;
+			text-align: center;
+		    height:30px;
+		}
+		.mrkm {
+			padding: 0px;
+			text-align: center;
+		    height:40px;
+		}
+		.mrkl {
+			padding: 0px;
+			text-align: center;
+		    height:52px;
+		}
+		.legend i {
+			opacity: 0.5;
+		}
+    </style>
+    </head>
+    <body>
+<div id="map"></div>
+<script>
+var map = L.map('map').setView([23.99546, 90.24467],7);
+L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png',{
+attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map)
+L.control.scale().addTo(map);
+     var rootUrl = 'http://103.248.13.141:8080/geoserver/dist_modified/ows';
+  // var rootUrl = 'http://localhost:8080/geoserver/bgd_bnd_adm/ows';
+// var rootUrl = 'http://localhost:8080/geoserver/sf/ows';
+  // var rootUrl ='http://localhost:8080/geoserver/arcTest/ows';
+
+var defaultParameters = {
+    service: 'WFS',
+    version: '1.0.0',
+    request: 'GetFeature',
+    // typeName: 'sf:archsites',
+   //typeName: 'arcTest:archsites',
+      typeName: 'dist_modified:dist_modified',
+   // typeName: 'bgd_bnd_adm:district',
+    maxFeatures: 200,
+    outputFormat: 'text/javascript',
+    format_options: 'callback: getJson',
+    srsName:'EPSG:4326'
+
+};
+
+var parameters = L.Util.extend(defaultParameters);
+//console.log(rootUrl + L.Util.getParamString(parameters));
+$.ajax({
+    jsonp : true,
+    url: rootUrl + L.Util.getParamString(parameters),
+    dataType: 'jsonp',
+    jsonpCallback: 'getJson',
+    success: handleJson
+});
+
+var group = new L.featureGroup().addTo(map);
+var geojsonlayer;
+function getValue(x) {
+			return x > 891883 ? "#FF0000" :
+			       x >= 372098 ? "#FFFF00" :
+			       x >= 225022 ? "#FF0000" :
+			       x >= 56774 ? "#008000" :
+			       "#FF8000";
+		}	
+function handleJson(data) {
+ //   console.log(data);
+	
+    geojsonlayer=L.geoJson(data, {
+	 style : function(feature){
+      var fillColor,
+      profit = feature.properties.profit;
+      if ( profit > 891883 ) fillColor = "#FF0000";
+      else if ( profit > 372098 ) fillColor = "#FFFF00";
+      else if ( profit > 225022) fillColor = "#FF0000";
+      else if ( profit > 56774 ) fillColor = "#008000";
+      else fillColor = "#008000";  // no data
+      return { color: "#999", weight: 1, fillColor: fillColor, fillOpacity: .5 };
+    },	
+        onEachFeature: function (feature, my_Layer) {
+             
+			my_Layer.bindPopup("<table>" +
+					"<tr class='oddrowcol'><td>OBJECTID : </td><td>"+feature.properties.objectid+"</td></tr>" +
+					"<tr class='evenrowcol'><td>Division : </td><td>"+feature.properties.division+"</td></tr>" +
+					"<tr class='evenrowcol'><td>District : </td><td>"+feature.properties.district+"</td></tr>" +
+					"<tr class='oddrowcol'><td>Profit : </td><td>"+feature.properties.profit+"</td></tr>" +
+					"</table>"
+			);				
+		}
+	/*				  
+					  ,
+        pointToLayer: function (feature, latlng) {
+            //return L.circleMarker(latlng, geojsonMarkerOptions);
+			return L.circleMarker(latlng//, geojsonMarkerOptions
+			);
+            //return L.marker(latlng);
+        }
+		*/
+    }).addTo(group);
+	map.fitBounds(group.getBounds());
+	
+}
+	var legend = L.control({position: 'bottomright'});
+				legend.onAdd = function(map) {
+					var div = L.DomUtil.create('div', 'legend');
+				    var labels = [];
+				    var grades = [56774, 225022, 372098, 891883];
+
+					div.innerHTML += 'Profit (2013)<br>'
+					for (var i = 0; i < grades.length-1; i++) { 
+						div.innerHTML +=
+						        '<i style="background:' + getValue(grades[i]) + '"></i> ' +
+						        								grades[i] + '&ndash;' + grades[i + 1] + '<br>';
+					}
+					
+				
+			return div;
+		};
+legend.addTo(map);
+function getJson(data) {
+console.log("callback function fired");
+}
+</script>
+</body>
+</html>
